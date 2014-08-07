@@ -28,6 +28,7 @@ along with this program.  If not, see
 
 '''
 import json
+import os
 
 class tagger():
     def __init__(self):
@@ -41,10 +42,11 @@ class tagger():
 
     def loader(self):
         try:
-            f = open('lwords.json', 'rb')
+            p = os.path.realpath(__file__)[:os.path.realpath(__file__).rfind(os.sep) + 1]
+            f = open(os.path.join(p + 'lwords.json'), 'rb')
             self.words = json.load(f)
             f.close()
-            f = open('lto_words.json', 'rb')
+            f = open(os.path.join(p + 'lto_words.json'), 'rb')
             self.wordsTo = json.load(f)
             f.close()
         except:

@@ -46,7 +46,7 @@ class token_api():
     
     def tokenizer(self, api_string):
         self.__init__()
-        # no way am I gonna write code to Parse IDAs C++ naming convention.hell.no. 
+        # ignore name mangled apis.
         if '@' in api_string or '$' in api_string or '?' in api_string or '*' in api_string:
             return None
         # remove end of line character if present
