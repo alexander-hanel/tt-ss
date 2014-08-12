@@ -1,6 +1,7 @@
 import idautils
-
-sys.path.append("../")
+import sys
+import os
+sys.path.append(os.path.realpath(__file__ + "/../../"))
 
 from api_tagger import *
 from api_tokener import *
@@ -255,7 +256,6 @@ class Wrappers():
 
 
 s = SimilarFunctions()
-s.monster_mash = True
 s.run(here())
 w = Wrappers()
 w.run(here())
