@@ -43,7 +43,7 @@ class SimilarFunctions:
         self.func_name = ""
         self.tagg = tagger()
         self.tok = token_api()
-        self.debug = False 
+        self.debug = False
 
     def run(self, addr):
         if self.debug:
@@ -58,6 +58,7 @@ class SimilarFunctions:
 
         if self.func_name and self.rename:
             idc.MakeName(GetFunctionAttr(addr, FUNCATTR_START), self.func_name)
+
 
     def is_name_used(self, addr):
         # do not rename the same function
@@ -166,6 +167,8 @@ class Wrappers():
 
     def __init__(self):
         self.func_name = ""
+        self.debug = True
+        self.sub_rename = True
 
     def wrapper_test(self, func_addr):
         """
@@ -176,10 +179,12 @@ class Wrappers():
         flags = GetFunctionFlags(func_addr)
         # ignore library functions
         if flags & FUNC_LIB or flags & FUNC_THUNK:
+            logging.debug("wrapper_test: Library code or thunk")
             return None
         dism_addr = list(FuncItems(func_addr))
         length = len(dism_addr)
         if length > 0x20:
+            logging.debug("wrapper_test: function length over 20")
             return None
         call = 0  # stores count calls
         test = 0  #
@@ -193,6 +198,7 @@ class Wrappers():
             if m == 'call':
                 call += 1
                 if call == 2:
+                    logging.debug("wrapper_test: more than 1 call or jump")
                     return None
                 op_addr = GetOperandValue(line , 0)
                 op_type = GetOpType(line,0)
@@ -204,6 +210,7 @@ class Wrappers():
                 if temp not in dism_addr:
                     call += 1
                     if call == 2:
+                        logging.debug("wrapper_test: more than 1 call or jump")
                         return None
                     op_addr = GetOperandValue(line , 0)
                     op_type = GetOpType(line,0)
@@ -212,12 +219,14 @@ class Wrappers():
                 test += 1
                 # not a wrapper function if a lot of test and cmp logic
                 if test == 3:
+                    logging.debug("wrapper_test: 3 or more test or cmps")
                     return None
         # remove junk strings
         if "ds:" in op:
             op = op.replace("ds:",'')
         # ignore name mangled code
         if "[" in op or "$" in op or "?" in op or "@" in op:
+            logging.debug("wrapper_test: skipping mangled API")
             return None
         # a function that calls another function
         # thunk functions are treated as apis
@@ -225,7 +234,11 @@ class Wrappers():
             if GetFunctionFlags(op_addr) & FUNC_THUNK:
                 return (op, 'api_wrapper')
             else:
-                return (op, 'sub_wrapper')
+                if self.sub_rename:
+                    return (op, 'sub_wrapper')
+                else:
+                    logging.debug("wrapper_test: ignore sub subs flag set")
+                    return None
         if op_type == 2:
             return (op, 'api_wrapper')
         if op_type == 6:
@@ -234,9 +247,11 @@ class Wrappers():
     def is_name_used(self, addr):
         # do not rename the same function
         if LocByName(self.func_name) == GetFunctionAttr(addr, FUNCATTR_START):
+            logging.debug('is_name_used: Generated name is in use by current function')
             return None
         # if function name does not exist use generated name
         if LocByName(self.func_name) == BADADDR:
+            logging.debug("is_name_used: Generated name is not present and can be used")
             return None
         # function name exists, rename it "func" will be "func_2"
         else:
@@ -245,6 +260,7 @@ class Wrappers():
             while LocByName(self.func_name) != BADADDR:
                 self.func_name = self.func_name[:-2] + "_" + str(count)
                 count += 1
+            logging.debug("is_name_used: Function name is use. Adding integer")
 
     def rename_wrapper(self, addr, func_stats):
         func_addr = GetFunctionAttr(addr , FUNCATTR_START)
@@ -261,6 +277,8 @@ class Wrappers():
             return None
 
     def run(self, addr):
+        if self.debug:
+            logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
         self.rename_wrapper(addr, self.wrapper_test(addr))
         if self.func_name != "":
             self.is_name_used(addr)
