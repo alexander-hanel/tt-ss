@@ -119,7 +119,7 @@ class SimilarFunctions:
             # if a common string is found in all APIs
             # return True and the count strings
             for string, count in count_tmp.items():
-                if count == len(self.apis):
+                if count == len(set(self.apis)):
                     self.matched = True
                     self.count_strings = count_tmp
 
@@ -237,7 +237,6 @@ class Wrappers():
         # func_stats returns a tupple(name, type)
         # the type can be seen about 10 lines up
         api_name, api_type = func_stats
-        renamer = ""
         if api_type == "sub_wrapper":
             self.func_name = "ws_" + api_name
         elif api_type == "api_wrapper":
@@ -246,10 +245,10 @@ class Wrappers():
             return None
 
     def run(self, addr):
-        if self.rename_wrapper(addr, self.wrapper_test(addr)) is not None:
+        self.rename_wrapper(addr, self.wrapper_test(addr))
+        if self.func_name != "":
             self.is_name_used(addr)
             MakeName(GetFunctionAttr(addr, FUNCATTR_START), self.func_name)
-
 
 ############
 
