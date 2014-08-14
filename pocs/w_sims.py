@@ -1,6 +1,7 @@
 import idautils
 import sys
 import os
+import logging
 sys.path.append(os.path.realpath(__file__ + "/../../"))
 
 from api_tagger import *
@@ -13,7 +14,7 @@ Author:
 Date:
     20140811
 Version:
-    - 12
+    -5 - still being testing
 Summary:
     Examples of using the TT&SS library
 
@@ -24,8 +25,9 @@ Summary:
             Example: SectionCriticalLeaveEnter
                 Api names ( EnterCriticalSection, LeaveCriticalSection)
                 EnterLeaveCriticalSection would be cleaner
+                This one really sucks...
         * Generate silly sentence example full text.
-        * Download repo to new machine and test importing, etc
+
 """
 
 class SimilarFunctions:
@@ -41,8 +43,12 @@ class SimilarFunctions:
         self.func_name = ""
         self.tagg = tagger()
         self.tok = token_api()
+        self.debug = False 
 
     def run(self, addr):
+        if self.debug:
+            logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
         self.get_apis(addr)
         self.match_apis()
         self.create_string()
@@ -56,9 +62,11 @@ class SimilarFunctions:
     def is_name_used(self, addr):
         # do not rename the same function
         if LocByName(self.func_name) == GetFunctionAttr(addr, FUNCATTR_START):
+            logging.debug('is_name_used: Generated name is in use by current function')
             return
         # if function name does not exist use generated name
         if LocByName(self.func_name) == BADADDR:
+            logging.debug("is_name_used: Generated name is not present and can be used")
             return
         # function name exists, rename it "func" will be "func_2"
         else:
@@ -67,11 +75,13 @@ class SimilarFunctions:
             while LocByName(self.func_name) != BADADDR:
                 self.func_name = self.func_name[:-2] + "_" + str(count)
                 count += 1
+            logging.debug("is_name_used: Function name is use. Adding integer")
 
     def get_apis(self, func_addr):
         flags = GetFunctionFlags(func_addr)
         # ignore library functions
         if flags & FUNC_LIB or flags & FUNC_THUNK:
+            logging.debug("get_apis: Library code or thunk")
             return None
         # list of addresses
         dism_addr = list(FuncItems(func_addr))
@@ -87,6 +97,7 @@ class SimilarFunctions:
                         self.calls += 1
                         continue
                     tmp_api_address = xref.to
+                    logging.debug("get_apis: xref to %x found", tmp_api_address)
                     break
                 # get next instr since api address could not be found
                 if tmp_api_address == "":
@@ -122,6 +133,10 @@ class SimilarFunctions:
                 if count == len(set(self.apis)):
                     self.matched = True
                     self.count_strings = count_tmp
+                else:
+                    logging.debug("match_apis: API count and API sub-string don't match")
+        else:
+            logging.debug("match_apis: calls above threshold or API count is 1")
 
     def create_string(self):
         if self.count_strings == "":
@@ -136,6 +151,7 @@ class SimilarFunctions:
             # Convert to CamelCase for easier reading and space
             tmp = each[0].upper() + each[1:]
             name += str(tmp)
+        logging.debug("create_string: string created %s", name)
         self.func_name = name
 
 """
