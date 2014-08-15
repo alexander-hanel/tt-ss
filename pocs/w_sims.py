@@ -12,21 +12,22 @@ from collections import Counter
 Author:
     Alexander Hanel
 Date:
-    20140811
+    20140814
 Version:
-    -5 - still being testing
+    -4.5 - still being testing
 Summary:
     Examples of using the TT&SS library
 
-    TODO:
-        * Finish the monster mash
-            - already generated or manually named fuctions will make the tokenizer useless..
-        * Figure out way to keep the order of the function name
-            Example: SectionCriticalLeaveEnter
-                Api names ( EnterCriticalSection, LeaveCriticalSection)
-                EnterLeaveCriticalSection would be cleaner
-                This one really sucks...
-        * Generate silly sentence example full text.
+TODO:
+    * Finish the monster mash
+        - already generated or manually named functions will make the tokenizer useless..
+    * Figure out way to keep the order of the function name
+        Example: SectionCriticalLeaveEnter
+            Api names ( EnterCriticalSection, LeaveCriticalSection)
+            EnterLeaveCriticalSection would be cleaner
+            - This one really sucks...
+    * What about comm
+    * Generate silly sentence example full text.
 
 """
 
@@ -43,19 +44,17 @@ class SimilarFunctions:
         self.func_name = ""
         self.tagg = tagger()
         self.tok = token_api()
-        self.debug = False
+        self.debug = True
 
     def run(self, addr):
         if self.debug:
             logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-
         self.get_apis(addr)
         self.match_apis()
         self.create_string()
         self.is_name_used(addr)
         if self.verbose and self.func_name:
             print "%s rename is %s" % (GetFunctionName(addr), self.func_name)
-
         if self.func_name and self.rename:
             idc.MakeName(GetFunctionAttr(addr, FUNCATTR_START), self.func_name)
 
@@ -88,7 +87,6 @@ class SimilarFunctions:
         dism_addr = list(FuncItems(func_addr))
         for instr in dism_addr:
             tmp_api_address = ""
-            tmp_api_name = ""
             if idaapi.is_call_insn(instr):
                 # In theory an API address should only have one xrefs
                 # The xrefs approach was used because I could not find how to
@@ -152,11 +150,13 @@ class SimilarFunctions:
             # Convert to CamelCase for easier reading and space
             tmp = each[0].upper() + each[1:]
             name += str(tmp)
+        # replace white space with underscore
+        name = name.replace(" ", "_")
         logging.debug("create_string: string created %s", name)
         self.func_name = name
 
 """
-Wrapper Credit
+Wrapper Credits
     * Branko Spasojevic originally provided the wrapper code
     * Daniel Plohmann through his python magic added it to IDAScope
         * See /idascope/core/SemanticIdentifier.py line 456 (as of 2014/08/05 )
@@ -169,6 +169,15 @@ class Wrappers():
         self.func_name = ""
         self.debug = True
         self.sub_rename = True
+
+    def run(self, addr):
+        if self.debug:
+            logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+        self.rename_wrapper(addr, self.wrapper_test(addr))
+        if self.func_name != "":
+            self.is_name_used(addr)
+            MakeName(GetFunctionAttr(addr, FUNCATTR_START), self.func_name)
+
 
     def wrapper_test(self, func_addr):
         """
@@ -219,7 +228,7 @@ class Wrappers():
                 test += 1
                 # not a wrapper function if a lot of test and cmp logic
                 if test == 3:
-                    logging.debug("wrapper_test: 3 or more test or cmps")
+                    logging.debug("wrapper_test: 3 or more TEST or CMP instructions")
                     return None
         # remove junk strings
         if "ds:" in op:
@@ -269,20 +278,14 @@ class Wrappers():
         # func_stats returns a tupple(name, type)
         # the type can be seen about 10 lines up
         api_name, api_type = func_stats
+        # remove white spaces
+        api_name = api_name.replace(" ", "_")
         if api_type == "sub_wrapper":
             self.func_name = "ws_" + api_name
         elif api_type == "api_wrapper":
             self.func_name = "w_" + api_name
         else:
             return None
-
-    def run(self, addr):
-        if self.debug:
-            logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-        self.rename_wrapper(addr, self.wrapper_test(addr))
-        if self.func_name != "":
-            self.is_name_used(addr)
-            MakeName(GetFunctionAttr(addr, FUNCATTR_START), self.func_name)
 
 ############
 
