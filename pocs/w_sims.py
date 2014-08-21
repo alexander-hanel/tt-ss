@@ -44,7 +44,7 @@ class SimilarFunctions:
         self.func_name = ""
         self.tagg = tagger()
         self.tok = token_api()
-        self.debug = True
+        self.debug = False
 
     def run(self, addr):
         if self.debug:
@@ -167,8 +167,9 @@ class Wrappers():
 
     def __init__(self):
         self.func_name = ""
-        self.debug = True
+        self.debug = False
         self.sub_rename = False
+        self.verbose = True
 
     def run(self, addr):
         if self.debug:
@@ -176,6 +177,8 @@ class Wrappers():
         self.rename_wrapper(addr, self.wrapper_test(addr))
         if self.func_name != "":
             self.is_name_used(addr)
+            if self.verbose:
+                print "%s rename is %s" % (GetFunctionName(addr), self.func_name)
             MakeName(GetFunctionAttr(addr, FUNCATTR_START), self.func_name)
 
 
@@ -290,10 +293,16 @@ class Wrappers():
 ############
 
 
-
+print "called"
+'''
 s = SimilarFunctions()
 s.run(here())
 w = Wrappers()
 w.run(here())
-
+'''
+for func in idautils.Functions():
+    s = SimilarFunctions()
+    s.run(func)
+    w = Wrappers()
+    w.run(func)
 
