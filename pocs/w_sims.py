@@ -145,7 +145,7 @@ class SimilarFunctions:
         name = ""
         for each in sort:
             # ignore Wide or Ascii
-            if each.upper() == "A" or each.upper() == "W":
+            if each.upper() == "A" or each.upper() == "W" or each.isdigit():
                 continue
             # Convert to CamelCase for easier reading and space
             tmp = each[0].upper() + each[1:]
@@ -168,7 +168,7 @@ class Wrappers():
     def __init__(self):
         self.func_name = ""
         self.debug = True
-        self.sub_rename = True
+        self.sub_rename = False
 
     def run(self, addr):
         if self.debug:
